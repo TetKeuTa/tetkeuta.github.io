@@ -302,23 +302,45 @@
 
 <script>
 /* ====================== CALENDRIER ======================
-   Ajoute une ligne par concert. Format de la date : "AAAA-MM-JJ".
-   heure, lieu et note sont facultatifs. La page trie toute seule.
+   Les dates sont lues automatiquement dans le Google Sheets
+   "Concerts" (compte tetkeuta@gmail.com). Colonnes attendues :
+   date | heure | titre | lieu | note   (une ligne par concert)
+   Pour changer de tableau, remplace l'adresse ci-dessous.
    ======================================================== */
-const concerts = [
-  { date:"2026-08-08", heure:"21h00", titre:"Un été à Manosque",       lieu:"Pizzeria de la plaine, Manosque", note:"5 musiciens" },
-  { date:"2026-08-22", heure:"21h30", titre:"Bal de la fête patronale", lieu:"Blieux",                            note:"5 musiciens" },
-  { date:"2026-10-02", heure:"",      titre:"Oktoberfest",              lieu:"La Javie",                          note:"avec Duduche" },
-  { date:"2026-09-26", heure:"",      titre:"live a l'age de biere",              lieu:"Digne les bains",                          note:"avec Rémy On'R" },
-  { date:"2026-10-16", heure:"19h",      titre:"LASUCE",              lieu:"Manosque",                          note:"5 musiciens" },
-];
+const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRa0IKaCi1XYsf3VceaoBkQwLtfJbFYWCojfU0qgqm6x_P3U6z-0wwBvezmn69CofsvNcc6Uj61ytrS/pub?gid=0&single=true&output=csv";
 
 const mois = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
 const jours = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
 const aujourdhui = new Date(); aujourdhui.setHours(0,0,0,0);
 
+/* accepte 2026-10-16 ou 16/10/2026 */
+function lireDate(txt){
+  txt = (txt||"").trim();
+  let m = txt.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(m){ let a=+m[3]; if(a<100) a+=2000; return new Date(a, +m[2]-1, +m[1]); }
+  return null;
+}
+
+/* lecture d'un CSV (gère les guillemets et les virgules dans les cellules) */
+function lireCSV(texte){
+  const lignes=[]; let ligne=[], cell="", q=false;
+  for(let i=0;i<texte.length;i++){
+    const c=texte[i];
+    if(q){ if(c==='"'){ if(texte[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ ligne.push(cell); cell=""; }
+    else if(c==='\n'){ ligne.push(cell); lignes.push(ligne); ligne=[]; cell=""; }
+    else if(c!=='\r') cell+=c;
+  }
+  if(cell!==""||ligne.length){ ligne.push(cell); lignes.push(ligne); }
+  const ent = lignes.shift().map(h=>h.trim().toLowerCase());
+  return lignes.filter(l=>l.some(v=>v.trim())).map(l=>{ const o={}; ent.forEach((h,i)=>o[h]=(l[i]||"").trim()); return o; });
+}
+
 function ligne(c){
-  const d = new Date(c.date+"T00:00:00");
+  const d = c.d;
   return `<li>
     <div class="jour"><b>${d.getDate()}</b><span>${mois[d.getMonth()]} ${d.getFullYear()}</span></div>
     <div class="quoi"><strong>${c.titre}${c.note?`<em>${c.note}</em>`:""}</strong>
@@ -326,21 +348,31 @@ function ligne(c){
   </li>`;
 }
 
-const tries = concerts.slice().sort((a,b)=>a.date.localeCompare(b.date));
-const avenir = tries.filter(c=>new Date(c.date+"T00:00:00")>=aujourdhui);
-const passe  = tries.filter(c=>new Date(c.date+"T00:00:00")< aujourdhui).reverse();
-
-document.getElementById("avenir").innerHTML = avenir.length
-  ? avenir.map(ligne).join("")
-  : `<li class="vide" style="display:block">Aucune date annoncée pour le moment. Vous organisez quelque chose ? <a href="#contact">Écrivez-nous.</a></li>`;
-document.getElementById("passe").innerHTML = passe.map(ligne).join("") || "<li style='display:block;padding:12px 0'>Rien pour l'instant.</li>";
-if(!passe.length) document.querySelector("details").style.display="none";
-
-if(avenir.length){
-  const p = avenir[0], d = new Date(p.date+"T00:00:00");
-  document.getElementById("prochaine").innerHTML =
-    `<div class="prochaine"><small>Prochaine date</small><strong>${jours[d.getDay()]} ${d.getDate()} ${mois[d.getMonth()]}${p.heure?" · "+p.heure:""}</strong><br>${p.titre}${p.lieu?", "+p.lieu:""}</div>`;
+function afficherConcerts(concerts){
+  const tries = concerts.filter(c=>c.d).sort((a,b)=>a.d-b.d);
+  const avenir = tries.filter(c=>c.d>=aujourdhui);
+  const passe  = tries.filter(c=>c.d< aujourdhui).reverse();
+  document.getElementById("avenir").innerHTML = avenir.length
+    ? avenir.map(ligne).join("")
+    : `<li class="vide" style="display:block">Aucune date annoncée pour le moment. Vous organisez quelque chose ? <a href="#contact">Écrivez-nous.</a></li>`;
+  document.getElementById("passe").innerHTML = passe.map(ligne).join("") || "<li style='display:block;padding:12px 0'>Rien pour l'instant.</li>";
+  document.querySelector("details").style.display = passe.length ? "" : "none";
+  const bloc = document.getElementById("prochaine");
+  if(avenir.length){
+    const p = avenir[0], d = p.d;
+    bloc.innerHTML = `<div class="prochaine"><small>Prochaine date</small><strong>${jours[d.getDay()]} ${d.getDate()} ${mois[d.getMonth()]}${p.heure?" · "+p.heure:""}</strong><br>${p.titre}${p.lieu?", "+p.lieu:""}</div>`;
+  } else bloc.innerHTML = "";
 }
+
+document.getElementById("avenir").innerHTML = "<li style='display:block;padding:12px 0;color:#5a5040'>Chargement des dates…</li>";
+fetch(SHEET_CSV + "&t=" + Date.now())
+  .then(r => { if(!r.ok) throw new Error(r.status); return r.text(); })
+  .then(txt => afficherConcerts(lireCSV(txt).map(o => ({ d:lireDate(o.date), heure:o.heure, titre:o.titre, lieu:o.lieu, note:o.note }))))
+  .catch(err => {
+    console.error("Agenda :", err);
+    document.getElementById("avenir").innerHTML = `<li class="vide" style="display:block">L'agenda est momentanément indisponible. Toutes nos dates sont sur <a href="https://www.facebook.com/profile.php?id=61576220750145">notre page Facebook</a>.</li>`;
+    document.querySelector("details").style.display="none";
+  });
 
 /* ======================= VIDÉOS =========================
    Colle ici les liens de tes vidéos Facebook (elles doivent être
