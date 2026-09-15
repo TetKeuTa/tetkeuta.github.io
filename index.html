@@ -132,6 +132,9 @@
 
   footer{background:var(--encre);color:#e8dfc8;padding:30px 0;font-size:.95rem}
   footer a{color:var(--jaune)}
+  .compteur{display:inline-block;margin-left:14px;padding:3px 10px;border:1px solid var(--jaune);border-radius:20px;color:var(--jaune);font-size:.85rem}
+  .compteur:empty{display:none}
+  .compteur b{font-family:'Alfa Slab One',serif;font-weight:400}
 
   @media (max-width:640px){
     nav ul{gap:14px;font-size:.95rem}
@@ -297,8 +300,18 @@
 <footer>
   <div class="wrap">
     Têt'KeuTa — Manosque, Alpes-de-Haute-Provence · <a href="https://www.facebook.com/profile.php?id=61576220750145">Suivez-nous sur Facebook</a>
+    <span id="compteur" class="compteur"></span>
   </div>
 </footer>
+
+<!-- Statistiques de visite (GoatCounter, sans cookie) : tableau de bord sur https://tetkeuta.goatcounter.com -->
+<script data-goatcounter="https://tetkeuta.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script>
+fetch("https://tetkeuta.goatcounter.com/counter/TOTAL.json")
+  .then(r => r.json())
+  .then(d => { document.getElementById("compteur").innerHTML = `<b>${d.count}</b> visites`; })
+  .catch(() => {});
+</script>
 
 <script>
 /* ====================== CALENDRIER ======================
