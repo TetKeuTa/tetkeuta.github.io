@@ -24,7 +24,7 @@
   "foundingDate": "2025",
   "foundingLocation": { "@type": "Place", "name": "Manosque, Alpes-de-Haute-Provence, France" },
   "description": "Groupe de chanson française festive originaire de Manosque : accent du Sud, accordéon, humour et ambiance de fête de village.",
-  "sameAs": ["https://www.facebook.com/profile.php?id=61576220750145"],
+  "sameAs": ["https://www.facebook.com/profile.php?id=61576220750145", "https://www.youtube.com/@Têtkeuta"],
   "member": [
     { "@type": "Person", "name": "Nico", "roleName": "guitare, chant" },
     { "@type": "Person", "name": "Pierrot", "roleName": "guitare, chant" },
@@ -289,7 +289,7 @@
 <section id="videos">
   <div class="wrap">
     <h2>En vidéo</h2>
-    <p class="lead">Pour se faire une idée de l'ambiance avant de nous réserver.</p>
+    <p class="lead">Pour se faire une idée de l'ambiance avant de nous réserver. Toutes nos vidéos sont sur <a href="https://www.youtube.com/@Têtkeuta">notre chaîne YouTube</a>.</p>
     <div class="videos" id="liste-videos"></div>
   </div>
 </section>
@@ -332,7 +332,7 @@
 
 <footer>
   <div class="wrap">
-    Têt'KeuTa — Manosque, Alpes-de-Haute-Provence · <a href="https://www.facebook.com/profile.php?id=61576220750145">Suivez-nous sur Facebook</a>
+    Têt'KeuTa — Manosque, Alpes-de-Haute-Provence · <a href="https://www.facebook.com/profile.php?id=61576220750145">Facebook</a> · <a href="https://www.youtube.com/@Têtkeuta">YouTube</a>
     <span id="compteur" class="compteur"></span>
   </div>
 </footer>
@@ -466,7 +466,7 @@ document.getElementById("liste-videos").innerHTML = videos.length
       <iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(v.url)}&show_text=false&t=0"
         allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
     </div>`).join("")
-  : `<p class="vide">Les vidéos arrivent bientôt. En attendant, tout est sur <a href="https://www.facebook.com/profile.php?id=61576220750145">notre page Facebook</a>.</p>`;
+  : `<p class="vide">Retrouvez nos vidéos sur <a href="https://www.youtube.com/@Têtkeuta">notre chaîne YouTube</a> et sur <a href="https://www.facebook.com/profile.php?id=61576220750145">notre page Facebook</a>.</p>`;
 
 /* ======================= PHOTOS =========================
    Une ligne par photo. src = chemin du fichier (mets tes photos
