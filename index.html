@@ -359,15 +359,19 @@ const mois = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.
 const jours = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
 const aujourdhui = new Date(); aujourdhui.setHours(0,0,0,0);
 
-/* accepte 2026-10-16 ou 16/10/2026 */
+/* accepte 2026-10-16, 16/10/2026, ou un mois seul : 02/2027 ou 2027-02 (jour à préciser) */
 function lireDate(txt){
   txt = (txt||"").trim();
   let m = txt.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
   if(m) return new Date(+m[1], +m[2]-1, +m[3]);
   m = txt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
   if(m){ let a=+m[3]; if(a<100) a+=2000; return new Date(a, +m[2]-1, +m[1]); }
+  m = txt.match(/^(\d{1,2})\/(\d{4})$/) || (txt.match(/^(\d{4})-(\d{1,2})$/) && [0, txt.split("-")[1], txt.split("-")[0]]);
+  if(m){ const d = new Date(+m[2], +m[1]-1, 1); d.moisSeul = true; return d; }
   return null;
 }
+/* une date « mois seul » reste à venir jusqu'à la fin du mois */
+function finEvenement(d){ return d.moisSeul ? new Date(d.getFullYear(), d.getMonth()+1, 0) : d; }
 
 /* lecture d'un CSV (gère les guillemets et les virgules dans les cellules) */
 function lireCSV(texte){
@@ -386,18 +390,22 @@ function lireCSV(texte){
 }
 
 function ligne(c){
-  const d = c.d;
+  const d = c.d, titre = c.titre || "Concert";
+  const jour = d.moisSeul
+    ? `<b>${mois[d.getMonth()]}</b><span>${d.getFullYear()}</span>`
+    : `<b>${d.getDate()}</b><span>${mois[d.getMonth()]} ${d.getFullYear()}</span>`;
+  const quand = d.moisSeul ? "date à préciser" : jours[d.getDay()] + (c.heure?" à "+c.heure:"");
   return `<li>
-    <div class="jour"><b>${d.getDate()}</b><span>${mois[d.getMonth()]} ${d.getFullYear()}</span></div>
-    <div class="quoi"><strong>${c.titre}${c.note?`<em>${c.note}</em>`:""}</strong>
-      <span>${jours[d.getDay()]}${c.heure?" à "+c.heure:""}${c.lieu?" — "+c.lieu:""}</span></div>
+    <div class="jour">${jour}</div>
+    <div class="quoi"><strong>${titre}${c.note?`<em>${c.note}</em>`:""}</strong>
+      <span>${quand}${c.lieu?" — "+c.lieu:""}</span></div>
   </li>`;
 }
 
 function afficherConcerts(concerts){
   const tries = concerts.filter(c=>c.d).sort((a,b)=>a.d-b.d);
-  const avenir = tries.filter(c=>c.d>=aujourdhui);
-  const passe  = tries.filter(c=>c.d< aujourdhui).reverse();
+  const avenir = tries.filter(c=>finEvenement(c.d)>=aujourdhui);
+  const passe  = tries.filter(c=>finEvenement(c.d)< aujourdhui).reverse();
   document.getElementById("avenir").innerHTML = avenir.length
     ? avenir.map(ligne).join("")
     : `<li class="vide" style="display:block">Aucune date annoncée pour le moment. Vous organisez quelque chose ? <a href="#contact">Écrivez-nous.</a></li>`;
@@ -406,7 +414,8 @@ function afficherConcerts(concerts){
   const bloc = document.getElementById("prochaine");
   if(avenir.length){
     const p = avenir[0], d = p.d;
-    bloc.innerHTML = `<div class="prochaine"><small>Prochaine date</small><strong>${jours[d.getDay()]} ${d.getDate()} ${mois[d.getMonth()]}${p.heure?" · "+p.heure:""}</strong><br>${p.titre}${p.lieu?", "+p.lieu:""}</div>`;
+    const quand = d.moisSeul ? `${mois[d.getMonth()]} ${d.getFullYear()} (date à préciser)` : `${jours[d.getDay()]} ${d.getDate()} ${mois[d.getMonth()]}${p.heure?" · "+p.heure:""}`;
+    bloc.innerHTML = `<div class="prochaine"><small>Prochaine date</small><strong>${quand}</strong><br>${p.titre||"Concert"}${p.lieu?", "+p.lieu:""}</div>`;
   } else bloc.innerHTML = "";
 }
 
