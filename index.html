@@ -101,6 +101,19 @@
   .formule h3{color:var(--jaune);font-size:1.5rem;margin-bottom:8px}
   .formule p{margin:0}
 
+
+  /* petite affiche d'annonce (pilotée par la ligne « annonce » du Google Sheets) */
+  .affiche{position:relative;display:block;max-width:300px;margin:34px 0 6px;background:#fffbef;color:var(--encre);
+    padding:30px 22px 20px;text-align:center;border:3px solid var(--encre);outline:2px dashed var(--olive);outline-offset:-10px;
+    box-shadow:8px 8px 0 rgba(0,0,0,.45);transform:rotate(2deg)}
+  .affiche::before,.affiche::after{content:"";position:absolute;top:-12px;width:70px;height:22px;background:rgba(255,222,89,.85);box-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .affiche::before{left:18px;transform:rotate(-8deg)}
+  .affiche::after{right:18px;transform:rotate(7deg)}
+  .affiche small{display:inline-block;background:var(--rouge);color:#fff;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;padding:3px 10px;border-radius:2px}
+  .affiche strong{display:block;font-family:'Alfa Slab One',Georgia,serif;font-weight:400;font-size:1.45rem;line-height:1.15;margin:12px 0 0}
+  .affiche span{display:block;margin-top:10px;color:#5a5040;font-size:.98rem}
+  @media (min-width:860px){ .affiche{position:absolute;top:6px;right:20px;width:270px;margin:0} }
+
   /* dates */
   #dates{background:#fff}
   .agenda{list-style:none;padding:0;margin:0;border-top:2px solid var(--encre)}
@@ -202,6 +215,7 @@
     <p class="accroche">La chanson française qui sent bon la Provence, l'apéro et les soirées entre copains.</p>
     <p class="lieu">Groupe de Manosque · chanson française festive, accent du Sud et bonne humeur</p>
     <div id="prochaine"></div>
+    <div id="annonce"></div>
     <a class="btn" href="#contact">Demander une date</a>
   </div>
 </header>
@@ -419,10 +433,29 @@ function afficherConcerts(concerts){
   } else bloc.innerHTML = "";
 }
 
+/* ====================== PETITE AFFICHE ======================
+   Dans le Google Sheets, ajoute une ligne avec « annonce » dans la colonne date :
+     - colonne titre = le texte principal (ex. Préparation de nos dernières compositions)
+     - colonne note  = une petite phrase en dessous (facultatif)
+     - colonne lieu  = le bandeau rouge du haut (facultatif, « En ce moment » par défaut)
+   Titre vide ou pas de ligne « annonce » = pas d'affiche sur le site.
+   ============================================================ */
+function echap(t){ return (t||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function afficherAnnonce(lignes){
+  const a = lignes.find(o => (o.date||"").trim().toLowerCase().startsWith("annonce") && (o.titre||"").trim());
+  document.getElementById("annonce").innerHTML = a
+    ? `<div class="affiche"><small>${echap(a.lieu || "En ce moment")}</small><strong>${echap(a.titre)}</strong>${a.note?`<span>${echap(a.note)}</span>`:""}</div>`
+    : "";
+}
+
 document.getElementById("avenir").innerHTML = "<li style='display:block;padding:12px 0;color:#5a5040'>Chargement des dates…</li>";
 fetch(SHEET_CSV + "&t=" + Date.now())
   .then(r => { if(!r.ok) throw new Error(r.status); return r.text(); })
-  .then(txt => afficherConcerts(lireCSV(txt).map(o => ({ d:lireDate(o.date), heure:o.heure, titre:o.titre, lieu:o.lieu, note:o.note }))))
+  .then(txt => {
+    const lignes = lireCSV(txt);
+    afficherAnnonce(lignes);
+    afficherConcerts(lignes.map(o => ({ d:lireDate(o.date), heure:o.heure, titre:o.titre, lieu:o.lieu, note:o.note })));
+  })
   .catch(err => {
     console.error("Agenda :", err);
     document.getElementById("avenir").innerHTML = `<li class="vide" style="display:block">L'agenda est momentanément indisponible. Toutes nos dates sont sur <a href="https://www.facebook.com/profile.php?id=61576220750145">notre page Facebook</a>.</li>`;
